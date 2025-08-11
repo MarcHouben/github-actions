@@ -25,25 +25,56 @@ jobs:
         alert-lookup: true
         compat-lookup: true
 
+    - name: Debug - Show dependency metadata
+      run: |
+        echo "🔍 DEBUG INFORMATION:"
+        echo "dependency-type: ${{ steps.metadata.outputs.dependency-type }}"
+        echo "update-type: ${{ steps.metadata.outputs.update-type }}"
+        echo "dependency-names: ${{ steps.metadata.outputs.dependency-names }}"
+        echo "package-ecosystem: ${{ steps.metadata.outputs.package-ecosystem }}"
+        echo ""
+
     - name: Add labels based on dependency type
       run: |
+        echo "📝 LABEL ASSIGNMENT DEBUG:"
+        echo "dependency-type value: '${{ steps.metadata.outputs.dependency-type }}'"
+
         labels=""
         if [[ "${{ steps.metadata.outputs.dependency-type }}" == "direct:production" ]]; then
           labels="production"
+          echo "✓ Adding 'production' label (dependency-type: direct:production)"
         elif [[ "${{ steps.metadata.outputs.dependency-type }}" == "direct:development" ]]; then
           labels="development"
+          echo "✓ Adding 'development' label (dependency-type: direct:development)"
+        else
+          echo "ℹ No dependency-type label added (dependency-type: '${{ steps.metadata.outputs.dependency-type }}')"
         fi
 
         if [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-patch" ]]; then
           labels="${labels} patch"
+          echo "✓ Adding 'patch' label (update-type: version-update:semver-patch)"
         elif [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-minor" ]]; then
           labels="${labels} minor"
+          echo "✓ Adding 'minor' label (update-type: version-update:semver-minor)"
         elif [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-major" ]]; then
           labels="${labels} major"
+          echo "✓ Adding 'major' label (update-type: version-update:semver-major)"
+        else
+          echo "ℹ No update-type label added (update-type: '${{ steps.metadata.outputs.update-type }}')"
         fi
 
+        # Trim leading/trailing spaces
+        labels=$(echo "$labels" | xargs)
+
+        echo ""
+        echo "🏷️ Final labels to apply: '$labels'"
+
         if [[ -n "$labels" ]]; then
+          echo "Applying labels to PR #$PR_NUMBER..."
           gh pr edit "$PR_NUMBER" --add-label "$labels"
+          echo "✅ Labels successfully applied!"
+        else
+          echo "⚠️ No labels to apply"
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
