@@ -1,0 +1,145 @@
+# Automatically creates GitHub issues for TODO comments found in code
+name: TODO to Issue Converter
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  schedule:
+  # Run daily at 9:00 AM UTC to catch any missed TODOs
+  - cron: '0 9 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  todo-to-issue:
+    runs-on: ubuntu-latest
+    name: Convert TODOs to Issues
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Full history for better context
+
+    - name: Scan for TODOs and Create Issues
+      uses: alstr/todo-to-issue-action@v4
+      with:
+        # GitHub token for creating issues
+        TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        # Close issues when TODO is removed
+        CLOSE_ISSUES: true
+
+        # Custom label for TODO issues
+        LABEL: "todo,automated,needs-attention"
+
+        # Assignees for the issues (comma-separated GitHub usernames)
+        ASSIGNEES: "MarcHouben"
+
+        # Milestone to assign to issues (milestone number or title)
+        # MILESTONE: "1"
+
+        # Comment to add when creating the issue
+        AUTO_P: true
+
+        # Issue title prefix
+        ISSUE_TITLE_PREFIX: "📝 TODO: "
+
+        # Maximum number of issues to create per run (prevents spam)
+        MAX_ISSUES: 10
+
+        # File patterns to include (comma-separated)
+        INCLUDE_PATTERN: "**/*.js,**/*.ts,**/*.jsx,**/*.tsx,**/*.py,**/*.java,**/*.cs,**/*.cpp,**/*.c,**/*.h,**/*.php,**/*.rb,**/*.go,**/*.rs,**/*.swift,**/*.kt,**/*.scala,**/*.sh,**/*.yml,**/*.yaml,**/*.json,**/*.md"
+
+        # File patterns to exclude (comma-separated)
+        EXCLUDE_PATTERN: "**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/vendor/**,**/*.min.js,**/*.min.css"
+        # TODO comment patterns to search for (default covers most languages)
+        # Supports: TODO, FIXME, HACK, BUG, OPTIMIZE, REVIEW, NOTE
+        FORMAT: "TODO:|FIXME:|HACK:|BUG:|OPTIMIZE:|REVIEW:|NOTE:"
+
+    - name: Summary Report
+      if: always()
+      run: |
+        echo "## 📝 TODO Scanner Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Count TODO patterns in the codebase
+        echo "### 🔍 TODO Statistics" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        total_todos=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG|OPTIMIZE|REVIEW|NOTE):" . | wc -l || echo "0")
+
+        todo_count=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "TODO:" . | wc -l || echo "0")
+
+        fixme_count=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "FIXME:" . | wc -l || echo "0")
+
+        echo "- **Total TODO/FIXME/etc comments:** $total_todos" >> $GITHUB_STEP_SUMMARY
+        echo "- **TODO comments:** $todo_count" >> $GITHUB_STEP_SUMMARY  
+        echo "- **FIXME comments:** $fixme_count" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "$total_todos" -gt 0 ]; then
+          echo "### 📋 Recent TODO Comments Found:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG):" . | head -20 >> $GITHUB_STEP_SUMMARY || echo "No TODOs found in this scan" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "🎉 **No TODO comments found!** Your codebase is clean." >> $GITHUB_STEP_SUMMARY
+        fi
+
+  # Optional: Weekly TODO digest
+  todo-digest:
+    runs-on: ubuntu-latest
+    name: Weekly TODO Digest
+    if: github.event.schedule == '0 9 * * 1' # Only on Monday mornings
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Create Weekly TODO Report
+      run: |
+        # Create a comprehensive TODO report
+        echo "# 📊 Weekly TODO Report - $(date '+%Y-%m-%d')" > todo-report.md
+        echo "" >> todo-report.md
+        echo "## Summary" >> todo-report.md
+
+        total=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG|OPTIMIZE|REVIEW|NOTE):" . | wc -l || echo "0")
+
+        echo "- **Total items found:** $total" >> todo-report.md
+        echo "" >> todo-report.md
+        echo "## Details by Type" >> todo-report.md
+
+        for keyword in TODO FIXME HACK BUG OPTIMIZE REVIEW NOTE; do
+          count=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "$keyword:" . | wc -l || echo "0")
+          if [ "$count" -gt 0 ]; then
+            echo "" >> todo-report.md
+            echo "### $keyword ($count items)" >> todo-report.md
+            echo "\`\`\`" >> todo-report.md
+            grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "$keyword:" . >> todo-report.md || echo "None found" >> todo-report.md
+            echo "\`\`\`" >> todo-report.md
+          fi
+        done
+
+    - name: Create Issue for Weekly Report
+      if: github.event.schedule
+      uses: peter-evans/create-issue-from-file@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        title: "📊 Weekly TODO Digest - $(date '+%Y-%m-%d')"
+        content-filepath: todo-report.md
+        labels: |
+          todo
+          weekly-digest
+          automated
