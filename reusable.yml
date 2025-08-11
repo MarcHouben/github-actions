@@ -1,0 +1,39 @@
+name: Reusable Deploy
+# We want to run this workflow from inside other workflows
+# The location and version of a reusable workflow file to run as a job, of the form 
+# './{path/to}/{localfile}.yml' or '{owner}/{repo}/{path}/{filename}@{ref}'. 
+# {ref} can be a SHA, a release tag, or a branch name. Using the commit SHA is the 
+# safest for stability and security.
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: The name of the deployable artifact files
+        required: false # False is geen probleem, want default is gedefinieerd
+        default: dist
+        type: string
+    outputs:
+      result:
+        description: The result of the deployment operation
+        value: ${{ jobs.deploy.outputs.outcome }} # Refers to line 22
+        # secrets:   # default is not possible
+        # some-secret:
+        # required: false
+jobs:
+  deploy:
+    outputs:
+      # Reference to the outcome of the job at line 35
+      outcome: ${{ steps.set-result.outputs.step-result }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get Code
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+    - name: List files
+      run: ls
+    - name: Output information
+      run: echo "Deploying & uploading..."
+    - name: Set result output
+      id: set-result
+      run: echo "step-result=success" >> $GITHUB_OUTPUT

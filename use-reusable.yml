@@ -1,0 +1,92 @@
+name: Using Reusable Workflow
+on:
+  push:
+    branches:
+    - main
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get code
+      uses: actions/checkout@v4
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci
+    - name: Lint code
+      run: npm run lint
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get code
+      uses: actions/checkout@v4
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci
+    - name: Test code
+      id: run-tests
+      run: npm run test
+    - name: Upload test report
+      if: failure() && steps.run-tests.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-report
+        path: test.json
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get code
+      uses: actions/checkout@v4
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci
+    - name: Build website
+      id: build-website
+      run: npm run build
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-files
+        path: dist
+  deploy:
+    needs: build
+    # Reuse the reusable workflow defined in reusable.yml
+    # This allows us to use the same deployment logic in multiple workflows
+    uses: ./.github/workflows/reusable.yml
+    with:
+      artifact-name: dist-files # The name of the artifact to deploy, as defined in the build job (default in reusable.yml is dist)
+      # secrets:
+      # some-secret: ${{ secrets.some-secret }}
+  print-deploy-result:
+    needs: deploy # Wait for the deploy job to finish before running this job
+    runs-on: ubuntu-latest
+    steps:
+    - name: Print deploy output
+      run: echo "${{ needs.deploy.outputs.result }}"
+  report:
+    needs: [ lint, deploy ]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Output information
+      run: |
+        echo "Something went wrong"
+        echo "${{ toJSON(github) }}"

@@ -1,0 +1,113 @@
+name: Deploy Project
+# on: [ push, pull_request, create, fork, issues, issue_comment, watch, discussion, workflow_dispatch, workflow_call ]
+on:
+  push:
+    branches:
+    - main
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get code
+      uses: actions/checkout@v4
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci
+    - name: Lint code
+      run: npm run lint
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+    - name: Install NodeJS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci
+    - name: Test code
+      id: run-tests # To identify this step in the next step
+      run: npm run test
+    - name: Upload test report
+      # Possible values: success, failure, cancelled, skipped
+      # Special conditional functions: 
+      # always(): causes the step to always execute, even when cancelled.
+      # failure(): returns true when any previous step or job failed.
+      # success(): returns true when none of the previous steps have failed.
+      # cancelled(): returns true if the workflow has been cancelled.
+      # This will only run if the previous step failed
+      if: failure() && steps.run-tests.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-report
+        path: test.json
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get code
+      uses: actions/checkout@v4
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci
+    - name: Build website
+      id: build-website
+      run: npm run build
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-files
+        path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-files
+    - name: Output contents
+      run: ls
+    - name: Output GitHub context
+      run: echo "${{ toJSON(github) }}"
+    - name: Output Secrets context
+      run: echo "${{ toJSON(secrets) }}"
+    - name: Output Env context
+      run: echo "${{ toJSON(env) }}"
+    - name: Output event details
+      run: echo "${{ toJSON(github.event) }}"
+    - name: Deploy
+      run: echo "Deploying ..."
+  report:
+    needs: [ lint, deploy ] # This job depends on the lint and deploy jobs
+    # This job will only run if any of the previous jobs failed
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Output information
+      run: |
+        echo "Something went wrong"
+        echo "${{ toJSON(github) }}"

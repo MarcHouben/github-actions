@@ -1,0 +1,89 @@
+# Automatically approves and merges Dependabot pull requests for patch and minor updates
+name: Dependabot Auto-Approval
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+# Minimal permissions following principle of least privilege
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot-auto-approve:
+    # Only run for Dependabot PRs
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Fetch Dependabot metadata
+      id: metadata
+      uses: dependabot/fetch-metadata@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        alert-lookup: true
+        compat-lookup: true
+
+    - name: Add labels based on dependency type
+      run: |
+        labels=""
+        if [[ "${{ steps.metadata.outputs.dependency-type }}" == "direct:production" ]]; then
+          labels="production"
+        elif [[ "${{ steps.metadata.outputs.dependency-type }}" == "direct:development" ]]; then
+          labels="development"
+        fi
+
+        if [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-patch" ]]; then
+          labels="${labels} patch"
+        elif [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-minor" ]]; then
+          labels="${labels} minor"
+        elif [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-major" ]]; then
+          labels="${labels} major"
+        fi
+
+        if [[ -n "$labels" ]]; then
+          gh pr edit "$PR_NUMBER" --add-label "$labels"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    - name: Auto-approve patch and minor updates
+      if: |
+        steps.metadata.outputs.update-type == 'version-update:semver-patch' || 
+        steps.metadata.outputs.update-type == 'version-update:semver-minor'
+      run: |
+        echo "Auto-approving ${{ steps.metadata.outputs.update-type }} update for ${{ steps.metadata.outputs.dependency-names }}"
+        gh pr review "$PR_NUMBER" --approve --body "✅ Auto-approved ${{ steps.metadata.outputs.update-type }} dependency update"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    - name: Enable auto-merge for approved updates
+      if: |
+        steps.metadata.outputs.update-type == 'version-update:semver-patch' || 
+        steps.metadata.outputs.update-type == 'version-update:semver-minor'
+      run: |
+        echo "Enabling auto-merge for approved update..."
+        gh pr merge "$PR_NUMBER" --auto --squash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    - name: Comment on major updates
+      if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+      run: |
+        gh pr comment "$PR_NUMBER" --body "🚨 **Major version update detected**
+
+        This PR contains a major version update for \`${{ steps.metadata.outputs.dependency-names }}\` which may include breaking changes.
+
+        **Please review carefully before merging:**
+        - Check the changelog/release notes
+        - Verify compatibility with existing code
+        - Run comprehensive tests
+
+        This PR will not be auto-merged and requires manual review."
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}

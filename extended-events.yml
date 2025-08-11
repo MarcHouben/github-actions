@@ -1,0 +1,41 @@
+name: Events Demo 1 # Workflow name
+on:
+  pull_request:
+    # event 1
+    types:
+    # activity types
+    - opened # [opened, edited, closed, reopened, synchronize]
+    branches:
+    # event filter
+    - main # main
+    - 'dev-*' # dev-new dev-this-is-new
+    - 'feat/**' # feat/new feat/new/button
+  workflow_dispatch: # event 2
+  push:
+    # event 3
+    branches:
+    # event filter
+    - main # main
+    - 'dev-*' # dev-new dev-this-is-new # * matches any number of characters
+    - 'feat/**' # feat/new feat/new/button  # ** matches any number of directories
+    # Branch called developer-1 will not trigger this workflow
+    paths-ignore:
+    # event filter
+    - 'README.md' # ignore README.md file changes
+    - '.github/workflows/*' # ignore workflow file changes
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Output event data
+      run: echo "${{ toJSON(github.event) }}"
+    - name: Get code
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      run: npm ci
+    - name: Test code
+      run: npm run test
+    - name: Build code
+      run: npm run build
+    - name: Deploy project
+      run: echo "Deploying..."

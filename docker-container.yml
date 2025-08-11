@@ -1,0 +1,65 @@
+name: Deployment (Container)
+on:
+  push:
+    branches:
+    - main
+    - dev
+env:
+  CACHE_KEY: node-deps
+  MONGODB_DB_NAME: gha-demo
+jobs:
+  test:
+    environment: testing
+    # timeout-minutes: 10
+    runs-on: ubuntu-latest
+    # container:
+    #   image: node:16   # mcr.microsoft.com/playwright:v1.25.0-focal
+    #   env:
+    #     MIGHT_BE_NEEDED: xxx
+    env:
+      MONGODB_CONNECTION_PROTOCOL: mongodb
+      MONGODB_CLUSTER_ADDRESS: 127.0.0.1:27017 # mongodb (gelijk aan regel 26) indien regel 15 en 16 actief zijn
+      MONGODB_USERNAME: root
+      MONGODB_PASSWORD: example
+      PORT: 8080
+    services:
+      # Services belong to a job
+      mongodb:
+        image: mongo
+        ports:
+        - 27017:27017 # Internal port 27017 should be forwarded to external port 27017 on the runner machine
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: example
+      #another-service:
+      #  image: nginx
+      #  ports:
+      #    - 8080:80
+    steps:
+    - name: Get Code
+      uses: actions/checkout@v4
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ env.CACHE_KEY }}-${{ hashFiles('**/package-lock.json') }}
+    - name: Install dependencies
+      run: npm ci
+    - name: Run server
+      run: npm start & npx wait-on http://127.0.0.1:$PORT # requires MongoDB Atlas to accept requests from anywhere!
+    - name: Run tests
+      run: npm test
+    - name: Output information
+      run: |
+        echo "MONGODB_USERNAME: $MONGODB_USERNAME"
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Output information
+      env:
+        PORT: 3000
+      run: |
+        echo "MONGODB_DB_NAME: $MONGODB_DB_NAME"
+        echo "MONGODB_USERNAME: $MONGODB_USERNAME"
+        echo "${{ env.PORT }}"

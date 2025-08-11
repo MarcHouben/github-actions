@@ -1,0 +1,31 @@
+name: Matrix Demo
+on: push
+jobs:
+  build:
+    continue-on-error: true # At job level
+    # The idea behind a matrix is to run the same job with different parameters/configurations.
+    # This is useful for testing across different environments, versions, etc.
+    # Will run for each combination of the parameters defined in the matrix (parallel).
+    strategy:
+      matrix:
+        node-version: [ 12, 14, 16 ] # Multiple versions of Node.js
+        operating-system: [ ubuntu-latest, windows-latest ] # Multiple runners
+        include:
+        - node-version: 18
+          operating-system: ubuntu-latest # Combination 18 + windows-latest will not be run
+        exclude:
+        - node-version: 12
+          operating-system: windows-latest
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+    - name: Get Code
+      uses: actions/checkout@v4
+    - name: Install NodeJS
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+    # Eventueel caching hier toevoegen    
+    - name: Install Dependencies
+      run: npm ci
+    - name: Build project
+      run: npm run build
