@@ -3,8 +3,12 @@ name: TODO to Issue Converter
 on:
   push:
     branches: [ main, master, develop ]
+    paths-ignore:
+    - ".github/workflows/**"
   pull_request:
     branches: [ main, master, develop ]
+    paths-ignore:
+    - ".github/workflows/**"
   schedule:
   # Run daily at 9:00 AM UTC to catch any missed TODOs
   - cron: "0 9 * * *"
