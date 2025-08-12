@@ -1,4 +1,12 @@
 # Automatically creates GitHub issues for TODO comments found in code
+# The workflow will specifically look for:
+# TODO: (uppercase)
+# FIXME: (uppercase)
+# HACK: (uppercase)
+# BUG: (uppercase)
+# OPTIMIZE: (uppercase)
+# REVIEW: (uppercase)
+# NOTE: (uppercase)
 name: TODO to Issue Converter
 on:
   push:
@@ -7,7 +15,7 @@ on:
     branches: [ main, master, develop ]
   schedule:
   # Run daily at 9:00 AM UTC to catch any missed TODOs
-  - cron: '0 9 * * *'
+  - cron: "0 9 * * *"
   workflow_dispatch:
     # Allow manual trigger
 
@@ -39,29 +47,13 @@ jobs:
         # Custom label for TODO issues
         LABEL: "todo,automated,needs-attention"
 
-        # Assignees for the issues (comma-separated GitHub usernames)
-        ASSIGNEES: "MarcHouben"
-
-        # Milestone to assign to issues (milestone number or title)
-        # MILESTONE: "1"
-
         # Comment to add when creating the issue
         AUTO_P: true
 
-        # Issue title prefix
-        ISSUE_TITLE_PREFIX: "📝 TODO: "
-
-        # Maximum number of issues to create per run (prevents spam)
-        MAX_ISSUES: 10
-
-        # File patterns to include (comma-separated)
-        INCLUDE_PATTERN: "**/*.js,**/*.ts,**/*.jsx,**/*.tsx,**/*.py,**/*.java,**/*.cs,**/*.cpp,**/*.c,**/*.h,**/*.php,**/*.rb,**/*.go,**/*.rs,**/*.swift,**/*.kt,**/*.scala,**/*.sh,**/*.yml,**/*.yaml,**/*.json,**/*.md"
-
-        # File patterns to exclude (comma-separated)
-        EXCLUDE_PATTERN: "**/node_modules/**,**/dist/**,**/build/**,**/.git/**,**/vendor/**,**/*.min.js,**/*.min.css"
-        # TODO comment patterns to search for (default covers most languages)
-        # Supports: TODO, FIXME, HACK, BUG, OPTIMIZE, REVIEW, NOTE
-        FORMAT: "TODO:|FIXME:|HACK:|BUG:|OPTIMIZE:|REVIEW:|NOTE:"
+        # Auto-assign to actor who triggered the workflow
+        AUTO_ASSIGN: true
+        # GitHub URL (for GitHub Enterprise, leave default for github.com)
+        # GITHUB_URL: "https://github.com"
 
     - name: Summary Report
       if: always()
@@ -77,11 +69,11 @@ jobs:
         echo "### 🔍 TODO Statistics" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
 
-        total_todos=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG|OPTIMIZE|REVIEW|NOTE):" . | wc -l || echo "0")
+        total_todos=$(grep -r --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG|OPTIMIZE|REVIEW|NOTE):" . | wc -l || echo "0")
 
-        todo_count=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "TODO:" . | wc -l || echo "0")
+        todo_count=$(grep -r --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "TODO:" . | wc -l || echo "0")
 
-        fixme_count=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "FIXME:" . | wc -l || echo "0")
+        fixme_count=$(grep -r --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "FIXME:" . | wc -l || echo "0")
 
         echo "- **Total TODO/FIXME/etc comments:** $total_todos" >> $GITHUB_STEP_SUMMARY
         echo "- **TODO comments:** $todo_count" >> $GITHUB_STEP_SUMMARY  
@@ -92,7 +84,7 @@ jobs:
           echo "### 📋 Recent TODO Comments Found:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG):" . | head -20 >> $GITHUB_STEP_SUMMARY || echo "No TODOs found in this scan" >> $GITHUB_STEP_SUMMARY
+          grep -r --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG):" . | head -20 >> $GITHUB_STEP_SUMMARY || echo "No TODOs found in this scan" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         else
           echo "🎉 **No TODO comments found!** Your codebase is clean." >> $GITHUB_STEP_SUMMARY
@@ -115,19 +107,19 @@ jobs:
         echo "" >> todo-report.md
         echo "## Summary" >> todo-report.md
 
-        total=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG|OPTIMIZE|REVIEW|NOTE):" . | wc -l || echo "0")
+        total=$(grep -r --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" -E "(TODO|FIXME|HACK|BUG|OPTIMIZE|REVIEW|NOTE):" . | wc -l || echo "0")
 
         echo "- **Total items found:** $total" >> todo-report.md
         echo "" >> todo-report.md
         echo "## Details by Type" >> todo-report.md
 
         for keyword in TODO FIXME HACK BUG OPTIMIZE REVIEW NOTE; do
-          count=$(grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "$keyword:" . | wc -l || echo "0")
+          count=$(grep -r --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "$keyword:" . | wc -l || echo "0")
           if [ "$count" -gt 0 ]; then
             echo "" >> todo-report.md
             echo "### $keyword ($count items)" >> todo-report.md
             echo "\`\`\`" >> todo-report.md
-            grep -r -i --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "$keyword:" . >> todo-report.md || echo "None found" >> todo-report.md
+            grep -r --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" --include="*.py" --include="*.java" --include="*.cs" --include="*.cpp" --include="*.c" --include="*.h" --include="*.php" --include="*.rb" --include="*.go" --include="*.rs" --include="*.swift" --include="*.kt" --include="*.scala" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir="vendor" "$keyword:" . >> todo-report.md || echo "None found" >> todo-report.md
             echo "\`\`\`" >> todo-report.md
           fi
         done
