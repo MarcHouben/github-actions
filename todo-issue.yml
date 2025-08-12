@@ -1,12 +1,4 @@
 # Automatically creates GitHub issues for TODO comments found in code
-# The workflow will specifically look for:
-# TODO: (uppercase)
-# FIXME: (uppercase)
-# HACK: (uppercase)
-# BUG: (uppercase)
-# OPTIMIZE: (uppercase)
-# REVIEW: (uppercase)
-# NOTE: (uppercase)
 name: TODO to Issue Converter
 on:
   push:
