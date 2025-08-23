@@ -36,3 +36,15 @@ jobs:
       env:
         PR_URL: ${{github.event.pull_request.html_url}}
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+# Maak een Personal Access Token (PAT) aan
+# - Ga naar GitHub Settings > Developer settings > Personal access tokens.
+# - Maak een nieuw token aan met minimaal de scopes: repo, workflow, en pull_request.
+# - Sla het token veilig op.
+
+# Voeg het token toe als secret in je repository
+# - Ga naar je repository > Settings > Secrets and variables > Actions.
+# - Voeg een nieuwe secret toe, bijvoorbeeld GH_PAT.
+
+# Gebruik het token in je workflow
+# - Vervang ${{ secrets.GITHUB_TOKEN }} door ${{ secrets.GH_PAT }} in je workflow waar je goedkeuring wilt uitvoeren.
